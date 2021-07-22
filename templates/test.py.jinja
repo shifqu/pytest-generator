@@ -1,0 +1,16 @@
+import pytest
+from {{module_parent_path}} import {{module_name}}
+
+{% for item in function_details %}
+{% if item.get('classname') %}
+@pytest.mark.parametrize(("args", "expected_output"), [((), "x")])
+def test_{{item['classname']}}_{{item['function_to_test']}}(args, expected_output):
+    return_value = {{module_name}}.{{item['classname']}}(*args).{{item['function_to_test']}}()
+{%- else %}
+@pytest.mark.parametrize(("expected_output"), [("x")])
+def test_{{module_name}}_{{item['function_to_test']}}(expected_output):
+    return_value = {{module_name}}.{{item['function_to_test']}}()
+{%- endif %}
+    assert return_value == expected_output
+
+{% endfor %}
