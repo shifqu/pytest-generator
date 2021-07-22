@@ -9,15 +9,16 @@ from pathlib import Path
 from types import MethodType, ModuleType
 from typing import Any, Callable, Optional
 
-import jinja2
+from jinja2 import Environment, FileSystemLoader, select_autoescape
 
-env = jinja2.Environment(
-    loader=jinja2.FileSystemLoader(Path(__file__).parent.parent / "templates"),
-    autoescape=jinja2.select_autoescape(),
+env = Environment(
+    loader=FileSystemLoader(Path(__file__).parent.parent / "templates"),
+    autoescape=select_autoescape(),
 )
 
 
 def generate(root: Path):
+    """Generate tests for all modules under `root`."""
     if not root.is_absolute():
         root = root.absolute()
 

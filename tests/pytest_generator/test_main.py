@@ -1,6 +1,6 @@
 import pytest
-from pytest_generator import main
 
+from pytest_generator import main
 
 
 @pytest.mark.parametrize(("expected_output"), [("x")])
