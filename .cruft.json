@@ -1,0 +1,23 @@
+{
+  "template": "https://github.com/shifqu/cookiecutter-python/",
+  "commit": "c2edfdc4027a805d2f78206496ba6c3f069c3634",
+  "checkout": null,
+  "context": {
+    "cookiecutter": {
+      "project_name": "Pytest Generator",
+      "package_slug": "pytest_generator",
+      "package_slug_kebab": "pytest-generator",
+      "project_description": "Generate pytests for all classes, functions and methods",
+      "project_version": "0.0.1",
+      "is_open_source": "y",
+      "include_contributing_docs": "y",
+      "ignore_poetry_lock_file": "y",
+      "full_name": "Sonny Valkeneers",
+      "email": "sonny@softllama.net",
+      "organization": "Softllama",
+      "github_username": "shifqu",
+      "_template": "https://github.com/shifqu/cookiecutter-python/"
+    }
+  },
+  "directory": null
+}

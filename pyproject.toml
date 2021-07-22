@@ -1,0 +1,53 @@
+[tool.poetry]
+name = "pytest_generator"
+version = "0.0.1"
+description = "Generate pytests for all classes, functions and methods"
+authors = ["Sonny Valkeneers <sonny@softllama.net>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.8.10"
+
+[tool.poetry.dev-dependencies]
+bandit = "^1.7"
+black = {version = "^21.4-beta.2", allow-prereleases = true}
+commitizen = "^2.17.6"
+cruft = "^2.8.0"
+flake8-bugbear = "^21.4.3"
+ipython = "^7.23"
+isort = "^5.8"
+mypy = "^0.812"
+pep8-naming = "^0.11.1"
+portray = "^1.6.0"
+pre-commit = "^2.12.1"
+proselint = "^0.10.2"
+pydocstyle = "^6.0.0"
+pytest = "^6.2.3"
+pytest-cov = "^2.11.1"
+pytest-mock = "^3.6.0"
+safety = "^1.10.3"
+shellcheck-py = "^0.7.2"
+vulture = "^2.3"
+
+[build-system]
+requires = ["poetry>=1.1.4"]
+build-backend = "poetry.masonry.api"
+
+[tool.black]
+line-length = 100
+
+[tool.isort]
+profile = "black"
+
+[tool.commitizen]
+annotated_tag = true
+bump_message = "bump: $current_version → $new_version [skip-ci]"
+name = "cz_conventional_commits"
+tag_format = "v$version"
+update_changelog_on_bump = true
+version = "0.0.1"
+version_files = [
+    "pyproject.toml:version",
+    "pytest_generator/__init__.py"
+]
