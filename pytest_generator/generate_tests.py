@@ -10,17 +10,24 @@ from types import MethodType, ModuleType
 from typing import Any, Callable, Optional
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
+from typer import Typer
 
+DEFAULT_TEMPLATES_PATH = Path(__file__).parent.parent / "templates"
 env = Environment(
-    loader=FileSystemLoader(Path(__file__).parent.parent / "templates"),
+    loader=FileSystemLoader(DEFAULT_TEMPLATES_PATH),
     autoescape=select_autoescape(),
 )
+cli = Typer(name="pytest-generator")
 
 
-def generate(root: Path):
+@cli.command()
+def generate(root: Path, template_dir: Optional[Path] = DEFAULT_TEMPLATES_PATH):
     """Generate tests for all modules under `root`."""
     if not root.is_absolute():
         root = root.absolute()
+
+    if template_dir is not None:
+        env.loader = FileSystemLoader(template_dir)
 
     test_root = root.parent.joinpath("tests")
     test_root.mkdir(exist_ok=True)
@@ -102,5 +109,5 @@ def _get_local_members(
 
 
 if __name__ == "__main__":
-    # TODO: Add opts to force and specify templates dir
-    generate(Path(sys.argv[1]))
+    # TODO: Add opts to force
+    cli()
