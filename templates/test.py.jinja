@@ -1,17 +1,52 @@
 import pytest
+{% if functions|length > 0 %}
+from {{from_}} import {{import_}}
+{% endif %}
 
-from {{module_parent_path}} import {{module_name}}
-{% for item in function_details %}
-{%- if item.get('classname') %}
-
-@pytest.mark.parametrize(("args", "expected_output"), [((), "x")])
-def test_{{item['classname']}}_{{item['function_to_test']}}(args, expected_output):
-    return_value = {{module_name}}.{{item['classname']}}(*args).{{item['function_to_test']}}()
+{% for item in functions %}
+{% if return_ %}
+@pytest.mark.parametrize(
+    ("args", "expected_output_value"),
+    [
+        ({{item['args']}},, {{return_}}),
+    ],
+)
+def test_{{item['name']}}(args, expected_output_value):
+    return_value = {{import_}}.{{item['name']}}(*args)
+    assert return_value == expected_output_value
 {%- else %}
+@pytest.mark.parametrize(
+    ("args",),
+    [
+        ({{item['args']}},),
+    ],
+)
+def test_{{item['name']}}(args):
+    {{import_}}.{{item['name']}}(*args)
+{% endif %}
+{% endfor %}
 
-@pytest.mark.parametrize(("expected_output"), [("x")])
-def test_{{module_name}}_{{item['function_to_test']}}(expected_output):
-    return_value = {{module_name}}.{{item['function_to_test']}}()
-{%- endif %}
-    assert return_value == expected_output
+{% for class_ in classes %}
+{% for item in class_["function"] %}
+{% if return_ %}
+@pytest.mark.parametrize(
+    ("args", "expected_output_value"),
+    [
+        ({{item['args']}},, {{return_}}),
+    ],
+)
+def test_{{item['name']}}(args, expected_output_value, {{class_['name']|lower}}_fixture):
+    return_value = {{class_['name']|lower}}_fixture.{{item['name']}}(*args)
+    assert return_value == expected_output_value
+{%- else %}
+@pytest.mark.parametrize(
+    ("args",),
+    [
+        ({{item['args']}},),
+    ],
+)
+def test_{{item['name']}}(args, {{class_['name']|lower}}_fixture):
+    {{class_['name']|lower}}_fixture.{{item['name']}}(*args)
+{% endif %}
+{% endfor %}
 {% endfor %}
