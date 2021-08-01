@@ -2,110 +2,102 @@
 
 This is a Python file to support running this script on multiple OS'es.
 """
-import importlib
-import inspect
-import sys
+import subprocess
 from pathlib import Path
-from types import MethodType, ModuleType
-from typing import Any, Callable, Optional
+from typing import Any
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from typer import Typer
 
+from pytest_generator.collect_from_ast import collect_members
+
+try:
+    import black
+
+    __BLACK_ENABLED__ = True
+except ImportError:
+    __BLACK_ENABLED__ = False
+
+
 DEFAULT_TEMPLATES_PATH = Path(__file__).parent.parent / "templates"
 env = Environment(
-    loader=FileSystemLoader(DEFAULT_TEMPLATES_PATH),
+    loader=None,
     autoescape=select_autoescape(),
 )
 cli = Typer(name="pytest-generator")
 
 
 @cli.command()
-def generate(root: Path, template_dir: Optional[Path] = DEFAULT_TEMPLATES_PATH):
+def generate(root: Path, template_dir: Path = DEFAULT_TEMPLATES_PATH):
     """Generate tests for all modules under `root`."""
     if not root.is_absolute():
         root = root.absolute()
 
-    if template_dir is not None:
+    if env.loader is None:
+        # Modifications on environments after the first template was loaded
+        # will lead to surprising effects and undefined behavior.
         env.loader = FileSystemLoader(template_dir)
 
     test_root = root.parent.joinpath("tests")
     test_root.mkdir(exist_ok=True)
     test_root.joinpath("__init__.py").touch()
 
-    _collect_members_and_write_tests(root, test_root)
+    members = collect_members(root)
+    write_tests(members, test_root)
 
 
-def _collect_members_and_write_tests(root: Path, test_root: Path):
-    for python_file in root.glob("**/*.py"):
-        if python_file.name == "__init__.py":
-            module_parts_list = list(python_file.relative_to(root.parent).parts[:-1])
-        else:
-            module_parts_list = list(python_file.relative_to(root.parent).parts)
-
-        python_file_suffix = "".join(python_file.suffixes)
-        module_parts = ".".join(module_parts_list).removesuffix(python_file_suffix)
-        module = importlib.import_module(module_parts)
-        classmembers = _get_local_members(module, inspect.isclass)
-        module_name_path = Path(module_parts.replace(".", "/"))
-        module_test_path = test_root.joinpath(
-            module_name_path.parent, f"test_{module_name_path.name}.py"
-        )
-        module_test_path.parent.mkdir(parents=True, exist_ok=True)
-        module_split = module_parts.split(".")
-        module_parent_path = ".".join(module_split[:-1])
-        module_name = module_split[-1]
-        function_details = []
-        for classname, classobject in classmembers:
-            # create fixture
-            fixture_name = classname.lower() + "_fixture"
-            print("Create fixture ;)", fixture_name)
-            functionmembers = _get_local_members(classobject, None)
-            for functionname, _ in functionmembers:
-                function_details.append(
-                    {
-                        "function_to_test": functionname,
-                        "classname": classname,
-                        "type": "method",
-                    }
-                )
-
-        functionmembers = _get_local_members(module, inspect.isfunction)
-        for functionname, _ in functionmembers:
-            function_details.append({"function_to_test": functionname, "type": "function"})
-        if not function_details:
+def write_tests(members: dict[str, dict[str, Any]], test_root: Path):
+    tests: dict[Path, str] = {}
+    for member, details in members.items():
+        if not any(detail for detail in details.values()):
+            print(f"Skipping {member}, it has no details {details}")
             continue
+        for fn in details["function"]:
+            arguments = []
+            if any(fn["args"].values()):
+                for k, v in fn["args"].items():
+                    if k not in ["posonlyargs", "args", "kwonlyargs"]:
+                        continue
+                    for a in v:
+                        if a in ["self", "cls"]:
+                            continue
+                        arguments.append(a)
+            fn["args"] = arguments
+        for class_detail in details["class"]:
+            # TODO: write fixture
+            for fn in class_detail.get("function", []):
+                arguments = []
+                if any(fn["args"].values()):
+                    for k, v in fn["args"].items():
+                        if k not in ["posonlyargs", "args", "kwonlyargs"]:
+                            continue
+                        for a in v:
+                            if a in ["self", "cls"]:
+                                continue
+                            arguments.append(a)
+                fn["args"] = arguments
+        module_name_split = member.split(".")
         rendered = env.get_template("test.py.jinja").render(
-            module_parent_path=module_parent_path,
-            module_name=module_name,
-            function_details=function_details,
+            from_=".".join(module_name_split[:-1]),
+            import_=module_name_split[-1],
+            functions=details["function"],
+            classes=details["class"],
         )
-        module_test_path.write_text(rendered)
-        print("wrote to", module_test_path)
-
-
-def _get_local_members(
-    obj: object, predicate: Optional[Callable], reverse=True
-) -> list[tuple[str, Any]]:
-    members = inspect.getmembers(obj, predicate)
-    if reverse:
-        members.reverse()
-    if isinstance(obj, type):
-        local_members = []
-        for member in members:
-            try:
-                self_is_obj = member[1].__self__ == obj
-            except AttributeError:
-                continue
-            else:
-                if self_is_obj and isinstance(member[1], MethodType):
-                    local_members.append(member)
-        return local_members
-    elif isinstance(obj, ModuleType):
-        return [member for member in members if member[1].__module__ == obj.__name__]
-    else:
-        print(obj, "not compatible with _get_local_members")
-        return []
+        test_path = (
+            test_root.joinpath(*module_name_split[:-1])
+            .joinpath(f"test_{module_name_split[-1]}")
+            .with_suffix(".py")
+        )
+        tests[test_path] = rendered
+    print("collecting tests finished.")
+    print("commencing write operations.")
+    for path, test in tests.items():
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(test)
+        print("wrote to", path)
+        if __BLACK_ENABLED__:
+            subprocess.run(["black", path])
+            print("black formatting finished successfully", path)
 
 
 if __name__ == "__main__":
