@@ -73,10 +73,3 @@ class Analyzer(ast.NodeVisitor):
             elif isinstance(attr, ast.arg):
                 arguments[field] = attr.arg
         return arguments
-
-
-if __name__ == "__main__":
-
-    collect_members(
-        Path("/Users/sonny/Projects/PERSONAL/accountancy-automation/accountancy_automation/")
-    )
