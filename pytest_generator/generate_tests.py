@@ -29,7 +29,12 @@ cli = Typer(name="pytest-generator")
 
 @cli.command()
 def generate(root: Path, template_dir: Path = DEFAULT_TEMPLATES_PATH):
-    """Generate tests for all modules under `root`."""
+    """Generate tests for all modules under `root`.
+
+    Args:
+        root (Path): The root path of the package. Can be relative.
+        template_dir (Path, optional): Directory from which templates are loaded.
+    """
     if not root.is_absolute():
         root = root.absolute()
 
@@ -52,30 +57,10 @@ def write_tests(members: dict[str, dict[str, Any]], test_root: Path):
         if not any(detail for detail in details.values()):
             print(f"Skipping {member}, it has no details {details}")
             continue
-        for fn in details["function"]:
-            arguments = []
-            if any(fn["args"].values()):
-                for k, v in fn["args"].items():
-                    if k not in ["posonlyargs", "args", "kwonlyargs"]:
-                        continue
-                    for a in v:
-                        if a in ["self", "cls"]:
-                            continue
-                        arguments.append(a)
-            fn["args"] = arguments
+        handle_function(details)
         for class_detail in details["class"]:
             # TODO: write fixture
-            for fn in class_detail.get("function", []):
-                arguments = []
-                if any(fn["args"].values()):
-                    for k, v in fn["args"].items():
-                        if k not in ["posonlyargs", "args", "kwonlyargs"]:
-                            continue
-                        for a in v:
-                            if a in ["self", "cls"]:
-                                continue
-                            arguments.append(a)
-                fn["args"] = arguments
+            handle_function(class_detail)
         module_name_split = member.split(".")
         rendered = env.get_template("test.py.jinja").render(
             from_=".".join(module_name_split[:-1]),
@@ -98,6 +83,21 @@ def write_tests(members: dict[str, dict[str, Any]], test_root: Path):
         if __BLACK_ENABLED__:
             subprocess.run(["black", path])
             print("black formatting finished successfully", path)
+
+
+def handle_function(details: dict[str, Any]):
+    for fn in details.get("function", []):
+        arguments = []
+        if any(fn["args"].values()):
+            for k, v in fn["args"].items():
+                if k not in ["posonlyargs", "args", "kwonlyargs"]:
+                    continue
+                for a in v:
+                    if a in ["self", "cls"]:
+                        continue
+                    arguments.append(a)
+        fn["args"] = arguments
+    return None
 
 
 if __name__ == "__main__":

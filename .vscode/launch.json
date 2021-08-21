@@ -9,7 +9,8 @@
       "console": "integratedTerminal",
       "args": [
         "pytest_generator"
-      ]
+      ],
+      "justMyCode": false
     },
     {
       "name": "Python: Module",

@@ -56,7 +56,7 @@ def test_visit_FunctionDef(args, analyzer_fixture):
 @pytest.mark.parametrize(
     ("args",),
     [
-        (["node"],),
+        (["node_dummy"],),
     ],
 )
 def test__visit_function(args, analyzer_fixture):
